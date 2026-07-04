@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>英語ゼミ指名ルーレット｜メイン表示版</title>
+  <style>
+    :root {
+      --item-h: 96px;
+      --visible: 5;
+      --roulette-w: min(780px, 92vw);
+      --content-w: min(900px, 94vw);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #26364f 0%, #111827 48%, #050816 100%);
+      color: white;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .app {
+      width: var(--content-w);
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+    }
+
+    .top-panel {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 24px;
+      padding: 22px 26px;
+      box-shadow: 0 20px 70px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(10px);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      text-align: center;
+      font-size: clamp(32px, 4vw, 52px);
+      line-height: 1.15;
+      letter-spacing: 0.05em;
+      word-break: keep-all;
+    }
+
+    .lead {
+      margin: 0 0 4px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .small-note {
+      margin: 0 0 14px;
+      text-align: center;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .name-row {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      align-items: stretch;
+    }
+
+    textarea {
+      width: 100%;
+      height: 118px;
+      resize: vertical;
+      border: 0;
+      border-radius: 16px;
+      padding: 14px 16px;
+      font-size: 17px;
+      line-height: 1.55;
+      background: rgba(255, 255, 255, 0.95);
+      color: #111827;
+      outline: none;
+    }
+
+    .input-note {
+      margin: 6px 0 0;
+      text-align: left;
+      color: rgba(255, 255, 255, 0.58);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .main-panel {
+      width: 100%;
+      display: grid;
+      justify-items: center;
+      gap: 18px;
+      padding: 10px 0 0;
+    }
+
+    .roulette {
+      width: var(--roulette-w);
+      height: calc(var(--item-h) * var(--visible));
+      overflow: hidden;
+      position: relative;
+      border-radius: 34px;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      background:
+        linear-gradient(to bottom,
+          rgba(5, 8, 22, .98),
+          rgba(30, 41, 59, .50) 20%,
+          rgba(30, 41, 59, .22) 50%,
+          rgba(30, 41, 59, .50) 80%,
+          rgba(5, 8, 22, .98));
+      box-shadow:
+        inset 0 0 52px rgba(255, 255, 255, .10),
+        0 34px 90px rgba(0, 0, 0, .44);
+    }
+
+    .roulette::before,
+    .roulette::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      height: 42%;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .roulette::before {
+      top: 0;
+      background: linear-gradient(to bottom, rgba(5, 8, 22, .98), rgba(5, 8, 22, 0));
+    }
+
+    .roulette::after {
+      bottom: 0;
+      background: linear-gradient(to top, rgba(5, 8, 22, .98), rgba(5, 8, 22, 0));
+    }
+
+    .center-frame {
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: calc(var(--item-h) * 2);
+      height: var(--item-h);
+      z-index: 5;
+      border: 4px solid #facc15;
+      border-radius: 22px;
+      box-shadow:
+        0 0 32px rgba(250, 204, 21, .65),
+        inset 0 0 20px rgba(250, 204, 21, .12);
+      pointer-events: none;
+    }
+
+    .center-frame::before,
+    .center-frame::after {
+      content: "";
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 0;
+      height: 0;
+      border-top: 18px solid transparent;
+      border-bottom: 18px solid transparent;
+    }
+
+    .center-frame::before {
+      left: -4px;
+      border-left: 24px solid #facc15;
+    }
+
+    .center-frame::after {
+      right: -4px;
+      border-right: 24px solid #facc15;
+    }
+
+    .track {
+      transform: translateY(0);
+      will-change: transform;
+    }
+
+    .item {
+      height: var(--item-h);
+      display: grid;
+      place-items: center;
+      font-size: clamp(40px, 5vw, 64px);
+      font-weight: 950;
+      letter-spacing: .10em;
+      text-shadow: 0 4px 16px rgba(0, 0, 0, .40);
+      user-select: none;
+    }
+
+    .item:nth-child(odd) {
+      background: rgba(255, 255, 255, .055);
+    }
+
+    .item:nth-child(even) {
+      background: rgba(255, 255, 255, .115);
+    }
+
+    .controls {
+      width: var(--roulette-w);
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }
+
+    button {
+      border: 0;
+      border-radius: 999px;
+      padding: 20px 28px;
+      font-size: clamp(22px, 3vw, 32px);
+      font-weight: 950;
+      cursor: pointer;
+      color: white;
+      transition: transform .15s ease, opacity .15s ease, filter .15s ease;
+      letter-spacing: .04em;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button:disabled {
+      opacity: .45;
+      cursor: not-allowed;
+      transform: none;
+      filter: none;
+    }
+
+    #startBtn {
+      background: linear-gradient(135deg, #22c55e, #16a34a);
+      box-shadow: 0 16px 36px rgba(34, 197, 94, 0.30);
+    }
+
+    #stopBtn {
+      background: linear-gradient(135deg, #f97316, #ef4444, #ec4899);
+      box-shadow: 0 16px 36px rgba(239, 68, 68, 0.36);
+    }
+
+    .result {
+      width: var(--roulette-w);
+      min-height: 104px;
+      border-radius: 26px;
+      display: grid;
+      place-items: center;
+      text-align: center;
+      background: rgba(255, 255, 255, .10);
+      border: 1px solid rgba(255, 255, 255, .18);
+      padding: 14px 20px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, .24);
+    }
+
+    .label {
+      color: rgba(255, 255, 255, .72);
+      font-size: 15px;
+      margin-bottom: 3px;
+    }
+
+    .winner {
+      font-size: clamp(34px, 5vw, 58px);
+      font-weight: 950;
+      letter-spacing: .10em;
+      color: #facc15;
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 16px;
+      }
+
+      :root {
+        --item-h: 78px;
+        --roulette-w: 94vw;
+      }
+
+      .top-panel {
+        padding: 18px;
+      }
+
+      .name-row {
+        grid-template-columns: 1fr;
+      }
+
+      .name-note {
+        width: 100%;
+      }
+
+      textarea {
+        height: 120px;
+      }
+
+      .controls {
+        gap: 12px;
+      }
+
+      button {
+        padding: 16px 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="top-panel">
+      <h1>英語ゼミ指名ルーレット</h1>
+      <div class="name-row">
+          <textarea id="names">M2　岡村 航太朗
+M2　小嶋 浩作
+M2　鬼頭 遥典
+M2　黒崎 愛理
+M2　佐々木 瞭
+M2　佐藤 魁
+M2　濱嶋 一樂
+M2　前嶋 玲輝
+M2　宮川 晃宗
+M2　村上 愛梨
+M1　加瀬 梓
+M1　金子 幸太郎
+M1　清水 裕太
+M1　谷内 光
+M1　西村 啓
+B4　石原 滉大
+B4　井ノロ 舜恭
+B4　川崎 千陽
+B4　工藤 仁子
+B4　桑野 碧
+B4　坂本 叶侑
+B4　篠田 悠太
+B4　鈴木 琉羽
+B4　福澤 光琉</textarea>
+        <p class="input-note">※一行に一人ずつ</p>
+      </div>
+    </section>
+
+    <section class="main-panel">
+      <div class="roulette" aria-label="縦回転ルーレット">
+        <div id="track" class="track"></div>
+        <div class="center-frame"></div>
+      </div>
+
+      <div class="controls">
+        <button id="startBtn">START</button>
+        <button id="stopBtn" disabled>STOP</button>
+      </div>
+
+      <div class="result">
+        <div>
+          <div class="label">選ばれた人</div>
+          <div id="winner" class="winner">---</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const namesEl = document.getElementById("names");
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const track = document.getElementById("track");
+    const winnerEl = document.getElementById("winner");
+
+    const ITEM_H = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--item-h"));
+    const CENTER_INDEX = 2;
+
+    // 調整用
+    const NORMAL_SPEED = 1.75;      // 通常回転の速さ
+    const STOP_DURATION = 5200;     // STOP後に止まるまでの時間
+    const STOP_EXTRA_MIN = 28;      // STOP後に最低何人分進むか
+    const STOP_EXTRA_RANDOM = 16;   // STOP後の追加ランダム距離
+
+    let names = [];
+    let repeat = 150;
+    let offsetY = 0;
+    let spinning = false;
+    let stopping = false;
+    let lastTime = null;
+    let animationId = null;
+    let baseCycleHeight = 0;
+
+    let stopStartTime = 0;
+    let stopStartY = 0;
+    let stopTargetY = 0;
+    let stopTargetIndex = 0;
+
+    function getNames() {
+      return namesEl.value
+        .split(/\n/)
+        .map(v => v.trim())
+        .filter(Boolean);
+    }
+
+    function buildTrack(inputNames) {
+      track.innerHTML = "";
+
+      for (let r = 0; r < repeat; r++) {
+        for (const name of inputNames) {
+          const div = document.createElement("div");
+          div.className = "item";
+          div.textContent = name;
+          track.appendChild(div);
+        }
+      }
+
+      baseCycleHeight = inputNames.length * ITEM_H;
+      offsetY = -(baseCycleHeight * Math.floor(repeat / 2));
+      applyOffset();
+    }
+
+    function applyOffset() {
+      track.style.transform = `translateY(${offsetY}px)`;
+    }
+
+    function normalizeOffset() {
+      if (!baseCycleHeight || stopping) return;
+
+      const minY = -(baseCycleHeight * 110);
+      const maxY = -(baseCycleHeight * 40);
+
+      if (offsetY < minY) {
+        offsetY += baseCycleHeight * 45;
+      } else if (offsetY > maxY) {
+        offsetY -= baseCycleHeight * 45;
+      }
+    }
+
+    function easeOutQuint(t) {
+      return 1 - Math.pow(1 - t, 5);
+    }
+
+    function startRoulette() {
+      if (spinning) return;
+
+      names = getNames();
+      if (names.length < 2) {
+        alert("名前を2人以上入力してください。");
+        return;
+      }
+
+      buildTrack(names);
+
+      spinning = true;
+      stopping = false;
+      lastTime = null;
+
+      winnerEl.textContent = "回転中...";
+      startBtn.disabled = true;
+      stopBtn.disabled = false;
+      namesEl.disabled = true;
+
+      animationId = requestAnimationFrame(animate);
+    }
+
+    function stopRoulette() {
+      if (!spinning || stopping) return;
+
+      stopping = true;
+      stopBtn.disabled = true;
+      winnerEl.textContent = "停止中...";
+
+      stopStartTime = performance.now();
+      stopStartY = offsetY;
+
+      const currentRawIndex = CENTER_INDEX - offsetY / ITEM_H;
+      const currentIndex = Math.ceil(currentRawIndex);
+      const extraItems = STOP_EXTRA_MIN + Math.floor(Math.random() * STOP_EXTRA_RANDOM);
+
+      stopTargetIndex = currentIndex + extraItems;
+      stopTargetY = -((stopTargetIndex - CENTER_INDEX) * ITEM_H);
+    }
+
+    function animate(now) {
+      if (!lastTime) lastTime = now;
+      const dt = Math.min(now - lastTime, 32);
+      lastTime = now;
+
+      if (!stopping) {
+        offsetY -= NORMAL_SPEED * dt;
+        normalizeOffset();
+        applyOffset();
+        animationId = requestAnimationFrame(animate);
+        return;
+      }
+
+      const progress = Math.min((now - stopStartTime) / STOP_DURATION, 1);
+      const eased = easeOutQuint(progress);
+
+      offsetY = stopStartY + (stopTargetY - stopStartY) * eased;
+      applyOffset();
+
+      if (progress < 1) {
+        animationId = requestAnimationFrame(animate);
+      } else {
+        finishStop();
+      }
+    }
+
+    function finishStop() {
+      spinning = false;
+      stopping = false;
+
+      if (animationId) {
+        cancelAnimationFrame(animationId);
+        animationId = null;
+      }
+
+      offsetY = stopTargetY;
+      applyOffset();
+
+      const winnerIndex = ((stopTargetIndex % names.length) + names.length) % names.length;
+      winnerEl.textContent = names[winnerIndex];
+
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      namesEl.disabled = false;
+    }
+
+    buildTrack(getNames());
+
+    startBtn.addEventListener("click", startRoulette);
+    stopBtn.addEventListener("click", stopRoulette);
+  </script>
+</body>
+</html>
